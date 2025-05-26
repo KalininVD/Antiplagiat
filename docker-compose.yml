@@ -1,0 +1,109 @@
+services:
+
+  apigateway:
+    image: apigateway
+    build:
+      context: .
+      dockerfile: APIGateway/Dockerfile
+    ports:
+      - "${API_GATEWAY_PORT}:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:80
+      - API_PORT=80
+      - FILE_ANALYSIS_SERVICE_HOST=fileanalysisservice
+      - FILE_ANALYSIS_SERVICE_PORT=80
+      - FILE_ANALYSIS_SERVICE_NAME=fileanalysis
+      - FILE_STORING_SERVICE_HOST=filestoringservice
+      - FILE_STORING_SERVICE_PORT=80
+      - FILE_STORING_SERVICE_NAME=filestoring
+    networks:
+      - antiplagiat_network
+    depends_on:
+      - filestoringservice
+      - fileanalysisservice
+    restart: on-failure
+
+  fileanalysisservice:
+    image: fileanalysisservice
+    build:
+      context: .
+      dockerfile: FileAnalysisService/Dockerfile
+    ports:
+      - "${FILE_ANALYSIS_SERVICE_PORT}:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:80
+      - API_PORT=80
+      - POSTGRES_HOST=fileanalysisservicepostgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB_NAME=${FILE_ANALYSIS_SERVICE_POSTGRES_DB_NAME}
+      - POSTGRES_USER=${FILE_ANALYSIS_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${FILE_ANALYSIS_SERVICE_POSTGRES_PASSWORD}
+      - FILE_STORING_SERVICE_HOST=filestoringservice
+      - FILE_STORING_SERVICE_PORT=80
+    networks:
+      - antiplagiat_network
+    depends_on:
+      - fileanalysisservicepostgres
+    restart: on-failure
+
+  fileanalysisservicepostgres:
+    container_name: fileanalysisservicepostgres
+    image: postgres:latest
+    ports:
+      - "${FILE_ANALYSIS_SERVICE_POSTGRES_PORT}:5432"
+    environment:
+      - POSTGRES_USER=${FILE_ANALYSIS_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${FILE_ANALYSIS_SERVICE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${FILE_ANALYSIS_SERVICE_POSTGRES_DB_NAME}
+    networks:
+      - antiplagiat_network
+    volumes:
+      - fileanalysis_data:/var/lib/postgresql/data
+    restart: on-failure
+
+  filestoringservice:
+    image: filestoringservice
+    build:
+      context: .
+      dockerfile: FileStoringService/Dockerfile
+    ports:
+      - "${FILE_STORING_SERVICE_PORT}:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:80
+      - API_PORT=80
+      - POSTGRES_HOST=filestoringservicepostgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB_NAME=${FILE_STORING_SERVICE_POSTGRES_DB_NAME}
+      - POSTGRES_USER=${FILE_STORING_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${FILE_STORING_SERVICE_POSTGRES_PASSWORD}
+    networks:
+      - antiplagiat_network
+    depends_on:
+      - filestoringservicepostgres
+    restart: on-failure
+
+  filestoringservicepostgres:
+    container_name: filestoringservicepostgres
+    image: postgres:latest
+    ports:
+      - "${FILE_STORING_SERVICE_POSTGRES_PORT}:5432"
+    environment:
+      - POSTGRES_USER=${FILE_STORING_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${FILE_STORING_SERVICE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${FILE_STORING_SERVICE_POSTGRES_DB_NAME}
+    networks:
+      - antiplagiat_network
+    volumes:
+      - filestoring_data:/var/lib/postgresql/data
+    restart: on-failure
+
+networks:
+  antiplagiat_network:
+    name: antiplagiat_network
+
+volumes:
+  filestoring_data:
+  fileanalysis_data:
