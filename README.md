@@ -53,9 +53,30 @@ Since the plagiarism detection is handled on the very first step (uploading the 
 To run the Antiplagiat services locally using Docker, you need to have Docker installed on your machine. The services are configured to run in Docker containers, and you can use Docker Compose to manage them:
 
 ```bash
-docker compose -f 'docker-compose.yml' up -d --build # To build and start all services in detached mode
+docker compose -f "docker-compose.yml" up -d --build
 ```
 
 But for correct start of the services, you need to create a `.env` file in the root directory (where `docker-compose.yml` is located) with all the necessary environment variables. The example `.env.example` file is provided in the repository, and you can copy/rename it to `.env` and modify the required values.
 
 **Note**: The `ASPNETCORE_ENVIRONMENT` variable in the `.env` file should be set to `Development` only for local development/testing, but other values are not currently supported since all the required configurations are set up in `appsettings.Development.json` files for all services.
+
+After the services are up and running, you can access the Swagger UI for each service at the following URLs:
+
+- File Storing Service: [http://localhost:5001/swagger](http://localhost:5001/swagger)
+- File Analysis Service: [http://localhost:5002/swagger](http://localhost:5002/swagger)
+
+API Gateway does not have its own Swagger UI, but you can access both File Storing Service and File Analysis Service Swagger UIs through it at the following URL: [http://localhost:8080/swagger/filestoring](http://localhost:8080/swagger/filestoring) and [http://localhost:8080/swagger/fileanalysis](http://localhost:8080/swagger/fileanalysis).
+
+**Note**: The ports used in the example above are the default ones specified in the `.env.example` file. If you change the ports in your `.env` file, make sure to access the Swagger UI at the correct URLs. You can also change the names of the services in the `docker-compose.yml` file if you want to access their Swagger UIs through the API Gateway with different paths.
+
+For accessing the pure services, you can use `curl` commands or any HTTP client like Postman (or even just a browser) to interact with the services directly, using the following endpoints:
+
+- File Storing Service:
+  - Upload file: `POST http://localhost:5001/files`
+  - Retrieve file: `GET http://localhost:5001/files/{id}`
+
+- File Analysis Service:
+  - Retrieve analytical report: `GET http://localhost:5002/reports/{id}`
+  - Retrieve WordCloud image: `GET http://localhost:5002/reports/{id}/wordcloud`
+
+Obviously, you need to make sure the same ports are used as specified in your `.env` file, or replace both ports with API Gateway port to access both services with the same base URL. `{id}` in the URLs should be replaced with the actual file identifier returned by the File Storing Service when you upload a file, otherwise you will get a `404 Not Found` response or `400 Bad Request` if the passed identifier is not a valid GUID.
